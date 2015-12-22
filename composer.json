@@ -1,28 +1,33 @@
 {
-    "name": "callmez/yii2-file-system",
+    "name": "weyii/yii2-file-system",
     "type": "yii2-extension",
     "description": "This extension provides a filesystem solution for Yii 2.",
-    "keywords": ["yii2", "flysystem", "file", "system", "storage", "qiniu"],
+    "keywords": ["weyii", "yii2", "flysystem", "file", "system", "storage", "qiniu"],
     "license": "MIT",
     "support": {
-        "issues": "https://github.com/callmez/yii2-file-system/issues",
-        "wiki": "https://github.com/callmez/yii2-file-system/wiki",
-        "source": "https://github.com/callmez/yii2-file-system"
+        "issues": "https://github.com/weyii/yii2-file-system/issues",
+        "wiki": "https://github.com/weyii/yii2-file-system/wiki",
+        "source": "https://github.com/weyii/yii2-file-system"
     },
     "authors": [
         {
-            "name": "CallMeZ",
+            "name": "Long Zhang",
             "email": "callme-z@qq.com"
         }
     ],
-    "require": { 
+    "require": {
         "yiisoft/yii2": "*",
-        "qiniu/php-sdk": "~6.0",
-        "league/flysystem": "*"
+        "league/flysystem": "~1.0"
+    },
+    "conflict": {
+        "qiniu/php-sdk": "<7.0"
+    },
+    "suggest": {
+        "qiniu/php-sdk": "七牛云存储上传SDK, 请使用'~7.0'以上版本."
     },
     "autoload": {
         "psr-4": {
-            "callmez\\file\\system\\": ""
+            "weyii\\file\\system\\": ""
         }
     }
 }
