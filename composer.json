@@ -20,10 +20,12 @@
         "league/flysystem": "~1.0"
     },
     "conflict": {
-        "qiniu/php-sdk": "<7.0"
+        "qiniu/php-sdk": "<7.0",
+        "aliyuncs/oss-sdk-php": "<2.0"
     },
     "suggest": {
-        "qiniu/php-sdk": "七牛云存储上传SDK, 请使用'~7.0'以上版本."
+        "qiniu/php-sdk": "七牛云存储SDK, 请使用'~7.0'以上版本.",
+        "aliyuncs/oss-sdk-php": "阿里云OSS存储SDK, 请使用'~2.0'以上版本"
     },
     "autoload": {
         "psr-4": {

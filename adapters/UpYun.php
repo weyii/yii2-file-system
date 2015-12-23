@@ -15,10 +15,10 @@ use League\Flysystem\AdapterInterface;
 use League\Flysystem\Adapter\AbstractAdapter;
 
 /**
- * 七牛文件存储
+ * 又拍云文件存储
  * @package weyii\file\system\adapters
  */
-class Qiiu extends AbstractAdapter implements Configurable
+class UpYun extends AbstractAdapter implements Configurable
 {
     use ObjectTrait;
 
