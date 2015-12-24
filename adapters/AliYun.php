@@ -1,5 +1,5 @@
 <?php
-namespace weyii\file\system\adapters;
+namespace weyii\filesystem\adapters;
 
 use Yii;
 use yii\base\Configurable;
@@ -15,7 +15,7 @@ use League\Flysystem\Adapter\AbstractAdapter;
 
 /**
  * 阿里云OSS文件存储
- * @package weyii\file\system\adapters
+ * @package weyii\filesystem\adapters
  */
 class AliYun extends AbstractAdapter implements Configurable
 {
@@ -160,14 +160,7 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function listContents($directory = '', $recursive = false)
     {
-        $files = [];
-        foreach($this->listDirContents($directory) as $k => $file) {
-            $pathInfo = pathinfo($file['key']);
-            $files[] = array_merge($pathInfo, $this->normalizeData($file), [
-                'type' => isset($pathInfo['extension']) ? 'file' : 'dir',
-            ]);
-        }
-        return $files;
+        return $this->listDirContents($directory);
     }
 
     /**

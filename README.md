@@ -1,7 +1,7 @@
 
-yii2-file-system
+yii2-filesystem
 =================
-Yii2-file-system是 [Flysystem](https://github.com/thephpleague/flysystem)基础上基于 [Yii2](https://github.com/yiisoft/yii2) 框架的实现的扩展。 **任何存储,统一的函数调用**
+Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础上基于 [Yii2](https://github.com/yiisoft/yii2) 框架的实现的扩展。 **任何存储,统一的函数调用**
 
 ###扩展存储
 - Qinu 七牛云存储
@@ -20,13 +20,13 @@ Yii2-file-system是 [Flysystem](https://github.com/thephpleague/flysystem)基础
 使用教程
 ========
 ###使用`Componser`安装 (以下2种方式)
-- 命令行执行 `composer require callmez/yii2-file-system`
+- 命令行执行 `composer require weyii/yii2-filesystem`
 - 编辑`composer.json` 
 
   ```php
   "require": {
       ...
-      "callmez/yii2-file-system": "*"
+      "weyii/yii2-file-system": "*"
   },
   ```
 ### 编辑配置文件(2种使用方式)
@@ -35,17 +35,17 @@ Yii2-file-system是 [Flysystem](https://github.com/thephpleague/flysystem)基础
   ```php
   'components' => [
     'fileSystem' => [
-      'class' => 'callmez\file\system\Collection',
+      'class' => 'weyii\filesystem\Collection',
           'fileSystems' => [
               //根据需求可设置多个存储, 以下来使用例子
               'local' => function() {
-                  return new \callmez\file\system\FileSystem(
-                      new \callmez\file\system\adapters\Local(\Yii::getAlias('@webroot\images'))
+                  return new \weyii\filesystem\FileSystem(
+                      new \weyii\filesystem\adapters\Local(\Yii::getAlias('@webroot\images'))
                   );
               },
               'qiniu' => function() {
-                  return new \callmez\file\system\FileSystem(
-                      new \callmez\file\system\adapters\Qiniu(
+                  return new \weyii\filesystem\FileSystem(
+                      new \weyii\filesystem\adapters\Qiniu(
                           '七牛空间的 bucket',
                           '七牛空间的 access key',
                           '七牛空间的 access secret',
@@ -70,8 +70,8 @@ Yii2-file-system是 [Flysystem](https://github.com/thephpleague/flysystem)基础
     echo $qiniu->read('test.txt');
     
     // wrapper 方式 (推荐)
-    //等同于Yii::$app->fileSystem->get('local')->write('test.txt', 'hello world');
-    Yii::$app->fileSystem->write('local://test.txt', 'hello world'); 
-    //等同于Yii::$app->fileSystem->get('qiniu')->write('test.txt', 'hello world');
-    Yii::$app->fileSystem->write('qiniu://test.txt', 'hello world'); 
+    //等同于Yii::$app->filesystem->get('local')->write('test.txt', 'hello world');
+    Yii::$app->filesystem->write('local://test.txt', 'hello world');
+    //等同于Yii::$app->filesystem->get('qiniu')->write('test.txt', 'hello world');
+    Yii::$app->filesystem->write('qiniu://test.txt', 'hello world');
   ```

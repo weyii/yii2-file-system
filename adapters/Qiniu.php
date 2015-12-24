@@ -1,5 +1,5 @@
 <?php
-namespace weyii\file\system\adapters;
+namespace weyii\filesystem\adapters;
 
 use Yii;
 use yii\base\Configurable;
@@ -16,7 +16,7 @@ use League\Flysystem\Adapter\AbstractAdapter;
 
 /**
  * 七牛文件存储
- * @package weyii\file\system\adapters
+ * @package weyii\filesystem\adapters
  */
 class Qiiu extends AbstractAdapter implements Configurable
 {
