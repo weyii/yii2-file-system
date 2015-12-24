@@ -140,12 +140,20 @@ class Qiiu extends AbstractAdapter implements Configurable
         );
     }
 
+    /**
+     * @param $path
+     * @return string
+     */
     public function getUrl($path)
     {
         $keyEsc = str_replace("%2F", "/", rawurlencode($path));
         return $this->baseUrl . '/' . $keyEsc;
     }
 
+    /**
+     * @param array $file
+     * @return array
+     */
     protected function normalizeData(array $file)
     {
         return [
@@ -155,6 +163,22 @@ class Qiiu extends AbstractAdapter implements Configurable
             'mimetype' => $file['mimeType'],
             'timestamp' => (int)($file['putTime'] / 10000000) //Epoch 时间戳
         ];
+    }
+
+    /**
+     * @param $directory
+     * @param null $start
+     * @return array
+     */
+    protected function listDirContents($directory, $start = null)
+    {
+        list($item, $start, $err) = $this->getBucketManager()->listFiles($this->bucket, $directory, $start);
+        if ($err !== null) {
+            return [];
+        } elseif (!empty($start)) {
+            $item = array_merge($item, $this->listDirContents($directory, $start));
+        }
+        return $item;
     }
 
     /**

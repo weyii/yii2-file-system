@@ -25,6 +25,7 @@
     },
     "suggest": {
         "qiniu/php-sdk": "七牛云存储SDK, 请使用'~7.0'以上版本.",
+        "weyii/upyun-php-sdk": "又拍云存储SDK(他们很懒不支持composr), 用这个来代替官方库吧",
         "aliyuncs/oss-sdk-php": "阿里云OSS存储SDK, 请使用'~2.0'以上版本"
     },
     "autoload": {

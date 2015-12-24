@@ -5,12 +5,11 @@ use Yii;
 use yii\base\Configurable;
 use yii\base\InvalidConfigException;
 use weyii\base\components\ObjectTrait;
-use Qiniu\Auth;
-use Qiniu\Storage\BucketManager;
-use Qiniu\Storage\UploadManager;
-use Qiniu\Storage\ResumeUploader;
+use OSS\OssClient;
+use OSS\Model\ObjectInfo;
 use League\Flysystem\Util;
 use League\Flysystem\Config;
+use League\Flysystem\Util\MimeType;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\Adapter\AbstractAdapter;
 
@@ -23,15 +22,15 @@ class AliYun extends AbstractAdapter implements Configurable
     use ObjectTrait;
 
     /**
-     * @var string 七牛访问秘钥Key
+     * @var string 阿里云访问秘钥ID
      */
-    public $accessKey;
+    public $accessKeyId;
     /**
-     * @var string 七牛访问秘钥Secret
+     * @var string 阿里云访问秘钥Secret
      */
-    public $accessSecret;
+    public $accessKeySecret;
     /**
-     * @var string 七牛存储Bucket
+     * @var string 阿里云OSS存储Bucket
      */
     public $bucket;
     /**
@@ -48,10 +47,10 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function init()
     {
-        if ($this->accessKey === null) {
-            throw new InvalidConfigException('The "accessKey" propery must be set.');
-        } elseif ($this->accessSecret === null) {
-            throw new InvalidConfigException('The "accessSecret" propery must be set.');
+        if ($this->accessKeyId === null) {
+            throw new InvalidConfigException('The "accessKeyId" propery must be set.');
+        } elseif ($this->accessKeySecret === null) {
+            throw new InvalidConfigException('The "accessKeySecret" propery must be set.');
         } elseif ($this->bucket === null) {
             throw new InvalidConfigException('The "bucket" propery must be set.');
         } elseif ($this->baseUrl === null) {
@@ -59,102 +58,74 @@ class AliYun extends AbstractAdapter implements Configurable
         }
     }
 
-    private $_auth;
+    private $_client;
 
     /**
-     * @return \Qiniu\Auth
+     * @return \OSS\OssClient
      */
-    public function getAuth()
+    public function getClient()
     {
-        if ($this->_auth === null) {
-            $this->setAuth(new Auth($this->accessKey, $this->accessSecret));
+        if ($this->_client === null) {
+            $this->setClient(new OssClient($this->accessKeyId, $this->accessKeySecret, $this->baseUrl));
         }
-        return $this->_auth;
+        return $this->_client;
     }
 
     /**
-     * @param \Qiniu\Auth $auth
+     * @param \OSS\OssClient $client
      */
-    public function setAuth(Auth $auth)
+    public function setClient(OssClient $client)
     {
-        $this->_auth = $auth;
+        $this->_client = $client;
     }
 
-    private $_bucketManager;
-
     /**
-     * @return \Qiniu\Storage\BucketManager
+     * @param \OSS\Model\ObjectInfo|array $file
+     * @return array
      */
-    public function getBucketManager()
+    protected function normalizeData($file)
     {
-        if ($this->_bucketManager === null) {
-            $this->setBucketManager(new BucketManager($this->getAuth()));
+        if (is_array($file)) {
+            $data = [];
+            foreach ($file as $k => $v) {
+                $data[$k] = $this->normalizeData($v);
+            }
+            return $data;
+        } elseif ($file instanceof ObjectInfo) {
+            return [
+                'type' => 'file',
+                'path' => $file->getKey(),
+                'size' => $file->getSize(),
+                'timestamp' => strtotime($file->getLastModified())
+            ];
+        } else {
+            return [
+                'type' => 'file',
+                'path' => $file['key'],
+                'size' => $file['content-length'],
+                'mimetype' => $file['content-type'],
+                'timestamp' => strtotime($file['last-modified'])
+            ];
         }
-        return $this->_bucketManager;
     }
 
     /**
-     * @param \Qiniu\Storage\BucketManager $bucketManager
+     * @param $directory
+     * @param null $start
+     * @return array
      */
-    public function setBucketManager(BucketManager $bucketManager)
+    protected function listDirContents($directory, $start = null)
     {
-        $this->_bucketManager = $bucketManager;
-    }
-
-    private $_uploadManager;
-
-    /**
-     * @return \Qiniu\Storage\UploadManager
-     */
-    public function getUploadManager()
-    {
-        if ($this->_uploadManager === null) {
-            $this->setUploadManager(new UploadManager());
+        $listInfo = $this->getClient()->listObjects($this->bucket, [
+            'prefix' => trim($directory, '/') . '/',
+            'marker' => $start
+        ]);
+        $start = $listInfo->getNextMarker();
+        $item = $this->normalizeData($listInfo->getObjectList());
+        if (!empty($start)) {
+            $item = array_merge($item, $this->listDirContents($directory, $start));
         }
-        return $this->_uploadManager;
-    }
-
-    /**
-     * @param \Qiniu\Storage\UploadManager $uploadManager
-     */
-    public function setUploadManager(UploadManager $uploadManager)
-    {
-        $this->_uploadManager = $uploadManager;
-    }
-
-    /**
-     * @param null $key
-     * @param int $expires
-     * @param null $policy
-     * @param bool|true $strictPolicy
-     * @return string
-     */
-    public function getUploadToken($key = null, $expires = 3600, $policy = null, $strictPolicy = true)
-    {
-        return $this->getAuth()->uploadToken(
-            $this->bucket,
-            $key,
-            $expires,
-            $policy,
-            $strictPolicy
-        );
-    }
-
-    public function getUrl($path)
-    {
-        $keyEsc = str_replace("%2F", "/", rawurlencode($path));
-        return $this->baseUrl . '/' . $keyEsc;
-    }
-
-    protected function normalizeData(array $file)
-    {
-        return [
-            'type' => 'file',
-            'path' => $file['key'],
-            'size' => $file['fsize'],
-            'mimetype' => $file['mimeType'],
-            'timestamp' => (int)($file['putTime'] / 10000000) //Epoch 时间戳
-        ];
+        return $item;
     }
 
     /**
@@ -170,7 +141,7 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function read($path)
     {
-        $contents = stream_get_contents($this->readStream($path)['stream']);
+        $contents = $this->getClient()->getObject($this->bucket, $path);
         return compact('contents', 'path');
     }
 
@@ -179,7 +150,7 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function readStream($path)
     {
-        $url = $this->getAuth()->privateDownloadUrl($this->getUrl($path));
+        $url = $this->getClient()->signUrl($this->bucket, $path, 3600);
         $stream = fopen($url, 'r');
         return compact('stream', 'path');
     }
@@ -204,12 +175,14 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function getMetadata($path)
     {
-        list($ret, $err) = $this->getBucketManager()->stat($this->bucket, $path);
-        if ($err !== null) {
+        try {
+            $meta = $this->getClient()->getObjectMeta($this->bucket, $path);
+        } catch (\Exception $e) {
             return false;
         }
-        $ret['key'] = $path;
-        return $this->normalizeData($ret);
+
+        $meta['key'] = $path;
+        return $this->normalizeData($meta);
     }
 
     /**
@@ -267,12 +240,65 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function update($path, $contents, Config $config)
     {
-        list(, $err) = $this->getUploadManager()->put($this->getUploadToken(), $path, $contents);
-        if ($err !== null) {
+        $result = $this->getClient()->putObject($this->bucket, $path, $contents);
+        if ($result !== null) {
             return false;
         }
         $mimetype = Util::guessMimeType($path, $contents);
         return compact('mimetype', 'path');
+    }
+
+    /**
+     * @param $object
+     * @param $uploadFile
+     * @param int $size
+     * @return null
+     * @throws \OSS\Core\OssException
+     */
+    protected function streamUpload($object, $uploadFile, $size = 0)
+    {
+        $client = $this->getClient();
+        $bucket = $this->bucket;
+        $upload_position = 0;
+        $upload_file_size = $size ?: Util::getStreamSize($uploadFile);
+        $extension = pathinfo($object, PATHINFO_EXTENSION);
+        $options = [
+            OssClient::OSS_CONTENT_TYPE => MimeType::detectByFileExtension($extension) ?: OssClient::DEFAULT_CONTENT_TYPE,
+            OssClient::OSS_PART_SIZE => OssClient::OSS_MID_PART_SIZE
+        ];
+
+        $is_check_md5 = false;
+
+        $uploadId = $client->initiateMultipartUpload($bucket, $object, $options);
+
+        // 获取的分片
+        $pieces = $client->generateMultiuploadParts($upload_file_size, (integer)$options[OssClient::OSS_PART_SIZE]);
+        $response_upload_part = array();
+        foreach ($pieces as $i => $piece) {
+            $from_pos = $upload_position + (integer)$piece[OssClient::OSS_SEEK_TO];
+            $to_pos = (integer)$piece[OssClient::OSS_LENGTH] + $from_pos - 1;
+            $up_options = array(
+                OssClient::OSS_FILE_UPLOAD => $uploadFile,
+                OssClient::OSS_PART_NUM => ($i + 1),
+                OssClient::OSS_SEEK_TO => $from_pos,
+                OssClient::OSS_LENGTH => $to_pos - $from_pos + 1,
+                OssClient::OSS_CHECK_MD5 => $is_check_md5,
+            );
+            if ($is_check_md5) {
+                $content_md5 = OssUtil::getMd5SumForFile($uploadFile, $from_pos, $to_pos);
+                $up_options[OssClient::OSS_CONTENT_MD5] = $content_md5;
+            }
+            $response_upload_part[] = $client->uploadPart($bucket, $object, $uploadId, $up_options);
+        }
+
+        $uploadParts = array();
+        foreach ($response_upload_part as $i => $etag) {
+            $uploadParts[] = array(
+                'PartNumber' => ($i + 1),
+                'ETag' => $etag,
+            );
+        }
+        return $client->completeMultipartUpload($bucket, $object, $uploadId, $uploadParts);
     }
 
     /**
@@ -281,16 +307,8 @@ class AliYun extends AbstractAdapter implements Configurable
     public function updateStream($path, $resource, Config $config)
     {
         $size = Util::getStreamSize($resource);
-        $resumeUploader = new ResumeUploader(
-            $this->getUploadToken(),
-            $path,
-            $resource,
-            $size,
-            null,
-            'application/octet-stream'
-        );
-        list(, $err) = $resumeUploader->upload();
-        if ($err !== null) {
+        $result = $this->streamUpload($path, $resource, $size);
+        if ($result !== null) {
             return false;
         }
         return compact('size', 'path');
@@ -301,8 +319,11 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function rename($path, $newpath)
     {
-        list(, $err) = $this->getBucketManager()->rename($this->bucket, $path, $newpath);
-        return $err === null;
+        $return = $this->getClient()->copyObject($this->bucket, $path, $this->bucket, $newpath) === null;
+        if ($return) { // 阿里云不能移动 只能先拷贝成功后删除旧object
+            $this->getClient()->deleteObject($this->bucket, $path);
+        }
+        return $return;
     }
 
     /**
@@ -310,8 +331,7 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function copy($path, $newpath)
     {
-        list(, $err) = $this->getBucketManager()->move($this->bucket, $path, $this->bucket, $newpath);
-        return $err === null;
+        return $this->getClient()->copyObject($this->bucket, $path, $this->bucket, $newpath) === null;
     }
 
     /**
@@ -319,8 +339,7 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function delete($path)
     {
-        list(, $err) = $this->getBucketManager()->delete($this->bucket, $path);
-        return $err === null;
+        return $this->getClient()->deleteObject($this->bucket, $path) === null;
     }
 
     /**
@@ -328,12 +347,11 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function deleteDir($dirname)
     {
-        // 七牛无目录概念. 目前实现方案是.列举指定目录资源.批量删除
+        // 阿里云无目录概念. 目前实现方案是.列举指定目录资源.批量删除
         $keys = array_map(function($file) {
-            return $file['key'];
+            return $file['path'];
         }, $this->listDirContents($dirname));
-        list(, $err) = $this->getBucketManager()->batch(BucketManager::buildBatchDelete($keys));
-        return $err === null;
+        return $this->getClient()->deleteObjects($this->bucket, $keys) === null;
     }
 
     /**
