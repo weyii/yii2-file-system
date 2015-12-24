@@ -1,5 +1,5 @@
 <?php
-namespace callmez\file\system;
+namespace weyii\file\system;
 
 use Yii;
 use yii\base\Component;
