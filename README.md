@@ -20,13 +20,13 @@ Yii2-file-system是 [Flysystem](https://github.com/thephpleague/flysystem)基础
 使用教程
 ========
 ###使用`Componser`安装 (以下2种方式)
-- 命令行执行 `composer require callmez/yii2-file-system`
+- 命令行执行 `composer require weyii/yii2-file-system`
 - 编辑`composer.json` 
 
   ```php
   "require": {
       ...
-      "callmez/yii2-file-system": "*"
+      "weyii/yii2-file-system": "*"
   },
   ```
 ### 编辑配置文件(2种使用方式)
@@ -35,17 +35,17 @@ Yii2-file-system是 [Flysystem](https://github.com/thephpleague/flysystem)基础
   ```php
   'components' => [
     'fileSystem' => [
-      'class' => 'callmez\file\system\Collection',
+      'class' => 'weyii\file\system\Collection',
           'fileSystems' => [
               //根据需求可设置多个存储, 以下来使用例子
               'local' => function() {
-                  return new \callmez\file\system\FileSystem(
-                      new \callmez\file\system\adapters\Local(\Yii::getAlias('@webroot\images'))
+                  return new \weyii\file\system\FileSystem(
+                      new \weyii\file\system\adapters\Local(\Yii::getAlias('@webroot\images'))
                   );
               },
               'qiniu' => function() {
-                  return new \callmez\file\system\FileSystem(
-                      new \callmez\file\system\adapters\Qiniu(
+                  return new \weyii\file\system\FileSystem(
+                      new \weyii\file\system\adapters\Qiniu(
                           '七牛空间的 bucket',
                           '七牛空间的 access key',
                           '七牛空间的 access secret',
