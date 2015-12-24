@@ -1,13 +1,13 @@
 {
-    "name": "weyii/yii2-file-system",
+    "name": "weyii/yii2-filesystem",
     "type": "yii2-extension",
     "description": "This extension provides a filesystem solution for Yii 2.",
-    "keywords": ["weyii", "yii2", "flysystem", "file", "system", "storage", "qiniu"],
+    "keywords": ["weyii", "yii2", "filesystem", "flysystem", "file", "storage", "qiniu"],
     "license": "MIT",
     "support": {
-        "issues": "https://github.com/weyii/yii2-file-system/issues",
-        "wiki": "https://github.com/weyii/yii2-file-system/wiki",
-        "source": "https://github.com/weyii/yii2-file-system"
+        "issues": "https://github.com/weyii/yii2-filesystem/issues",
+        "wiki": "https://github.com/weyii/yii2-filesystem/wiki",
+        "source": "https://github.com/weyii/yii2-filesystem"
     },
     "authors": [
         {
@@ -25,12 +25,11 @@
     },
     "suggest": {
         "qiniu/php-sdk": "七牛云存储SDK, 请使用'~7.0'以上版本.",
-        "weyii/upyun-php-sdk": "又拍云存储SDK(他们很懒不支持composr), 用这个来代替官方库吧",
         "aliyuncs/oss-sdk-php": "阿里云OSS存储SDK, 请使用'~2.0'以上版本"
     },
     "autoload": {
         "psr-4": {
-            "weyii\\file\\system\\": ""
+            "weyii\\filesystem\\": ""
         }
     }
 }
