@@ -4,7 +4,7 @@ namespace weyii\filesystem\adapters;
 use Yii;
 use yii\base\Configurable;
 use yii\base\InvalidConfigException;
-use weyii\base\components\ObjectTrait;
+use weyii\base\traits\ObjectTrait;
 use OSS\OssClient;
 use OSS\Model\ObjectInfo;
 use League\Flysystem\Util;
