@@ -17,6 +17,8 @@
     ],
     "require": {
         "yiisoft/yii2": "*",
+        "weyii/yii2-base": "*",
+
         "league/flysystem": "~1.0"
     },
     "conflict": {
