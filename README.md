@@ -1,7 +1,7 @@
 
 yii2-filesystem
 =================
-Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础上基于 [Yii2](https://github.com/yiisoft/yii2) 框架的实现的扩展。 **任何存储,统一的函数调用**
+Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础上基于 [Yii2](https://github.com/yiisoft/yii2) 框架的实现的扩展。 **任何存储,统一的方法调用**
 
 ### 已支持扩展存储
 - 阿里云OSS存储
@@ -11,7 +11,7 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
 - FTP存储
 - SFtp存储
 
-** 墙外世界产品(去Flysystem上找) **
+####墙外世界产品(去Flysystem上找)
 - Amazon S3/S2
 - Dropbox
 ...
