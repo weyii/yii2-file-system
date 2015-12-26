@@ -57,7 +57,8 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
                     'class' => 'weyii\filesystem\adapters\QiNiu',
                     'accessKey' => '七牛AccessKey',
                     'accessSecret' => '七牛accessSecret',
-                    'bucket' => '七牛bucket空间'
+                    'bucket' => '七牛bucket空间',
+                    'baseUrl' => '七牛基本访问地址, 如:http://72g7lu.com1.z0.glb.clouddn.com'
                 ],
                 'upyun' => [
                     'class' => 'weyii\filesystem\adapters\UpYun',
