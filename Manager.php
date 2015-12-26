@@ -1,11 +1,13 @@
 <?php
 namespace weyii\filesystem;
 
+use Closure;
 use Yii;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
-use League\Flysystem\Filesystem;
+use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\AdapterInterface;
+use League\Flysystem\FilesystemInterface;
 
 /**
  * Class Manager
@@ -55,7 +57,7 @@ class Manager extends Component
     public function setDisks(array $disks)
     {
         foreach ($disks as $id => $component) {
-            $this->set($id, $component);
+            $this->setDisk($id, $component);
         }
     }
 
@@ -65,10 +67,14 @@ class Manager extends Component
      * @param string|null $id 为空则取默认的Disk ID
      * @param bool|true $throwException
      * @return null|object
-     * @throws InvalidConfigException
+     * @throws \weyii\filesystem\FilesystemInterface|InvalidConfigException
      */
-    public function get($id, $throwException = true)
+    public function getDisk($id = null, $throwException = true)
     {
+        if ($id === null) {
+            $id = $this->default;
+        }
+
         if (isset($this->_disks[$id])) {
             return $this->_disks[$id];
         }
@@ -80,7 +86,7 @@ class Manager extends Component
             } else {
                 $adapter = Yii::createObject($definition);
             }
-            $driver = $adapter instanceof Filesystem ? $adapter : $this->createFlysystem($adapter);
+            $driver = $adapter instanceof FilesystemInterface ? $adapter : $this->createFlysystem($adapter);
             return $this->_disks[$id] = $this->adapt($driver);
         } elseif ($throwException) {
             throw new InvalidConfigException("Unknown component ID: $id");
@@ -96,7 +102,7 @@ class Manager extends Component
      * @param $definition
      * @throws InvalidConfigException
      */
-    public function set($id, $definition)
+    public function setDisk($id, $definition)
     {
         if ($definition === null) {
             unset($this->_disks[$id], $this->_definitions[$id]);
@@ -121,10 +127,8 @@ class Manager extends Component
     }
 
     /**
-     *
-     *
-     * @param FilesystemInterface $filesystem
-     * @return FilesystemAdapter
+     * @param \League\Flysystem\FilesystemInterface $filesystem
+     * @return \weyii\filesystem\FilesystemAdapter
      */
     protected function adapt(FilesystemInterface $filesystem)
     {
@@ -134,12 +138,26 @@ class Manager extends Component
     /**
      * 创建文件系统驱动
      *
-     * @param AdapterInterface $adapter
+     * @param \League\Flysystem\AdapterInterface $adapter
      * @param array|null $config
      * @return \League\Flysystem\Filesystem
      */
     protected function createFlysystem(AdapterInterface $adapter, array $config = null)
     {
         return new Flysystem($adapter, $config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function __call($name, $params)
+    {
+        foreach ($this->getBehaviors() as $object) {
+            if ($object->hasMethod($name)) {
+                return call_user_func_array([$object, $name], $params);
+            }
+        }
+
+        return call_user_func_array([$this->getDisk(), $name], $params);
     }
 }
