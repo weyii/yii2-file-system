@@ -66,8 +66,8 @@ class Manager extends Component
      *
      * @param string|null $id 为空则取默认的Disk ID
      * @param bool|true $throwException
-     * @return null|object
-     * @throws \weyii\filesystem\FilesystemInterface|InvalidConfigException
+     * @return null|\weyii\filesystem\FilesystemInterface
+     * @throws InvalidConfigException
      */
     public function getDisk($id = null, $throwException = true)
     {
@@ -128,7 +128,7 @@ class Manager extends Component
 
     /**
      * @param \League\Flysystem\FilesystemInterface $filesystem
-     * @return \weyii\filesystem\FilesystemAdapter
+     * @return \weyii\filesystem\File
      */
     protected function adapt(FilesystemInterface $filesystem)
     {
