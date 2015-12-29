@@ -70,7 +70,11 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
                     'class' => 'weyii\filesystem\adapters\AliYun',
                     'accessKeyId' => '阿里云OSS AccessKeyID',
                     'accessKeySecret' => '阿里云OSS AccessKeySecret',
-                    'bucket' => '阿里云的bucket空间'
+                    'bucket' => '阿里云的bucket空间',
+                    // lanUrl和wanUrl样只需填写一个. 如果填写lanUrl 将优先使用lanUrl作为传输地址
+                    // 外网和内网的使用参考: https://help.aliyun.com/document_detail/oss/user_guide/oss_concept/endpoint.html?spm=5176.2020520105.0.0.tpQOiL
+                    'lanDomain' => 'OSS内网地址, 如:oss-cn-hangzhou-internal.aliyuncs.com', // 默认不填. 在生产环境下保证OSS和服务器同属一个区域机房部署即可, 切记不能带上bucket前缀
+                    'wanDomain' => 'OSS外网地址, 如:oss-cn-hangzhou.aliyuncs.com' // 默认为杭州机房domain, 其他机房请自行替换, 切记不能带上bucket前缀
                 ],
                 ... // 其他如FTP, 墙外世界产品请参考Flysystem
             ]
@@ -118,8 +122,12 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
     $disk = $disk->has('tes.txt');
 
     $disks = $storage->disks;
-    foreach ($disks as $name => $disk) { // 部分语法照搬Laravel的Filesystem语法
+    $testFile = Yii::getAlias('@webroot/assets/test.txt');
+    file_put_contents($testFile, 'test.txt');
+    foreach ($disks as $name => $disk) {
         $disk = $storage->getDisk($name); // $disk = storage($name)
+
+        // 以下语法参照Laravel的Filesystem语法
         $disk->put('test.txt', 'hello world!'); // storage($name)->put('test.txt', 'hello world!'); //下面的都可以这样操作
         $disk->put('test.txt', $resource); // 流操作
         $disk->has('test.txt');
@@ -144,6 +152,31 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
 
         $disk->makeDirectory('/path');
         $disk->deleteDirectory('/path');
+
+        // 抽象原始方法
+        $files = $disk->listContents();
+        $has = $disk->has('test.txt');
+        $has && $disk->delete('test.txt');
+        $disk->write('test.txt', 'Hello World!');
+        $data = $disk->read('test.txt');
+        $data = $disk->readStream('test.txt', fopen($testFile, 'r'));
+        $disk->update('test.txt', 'Hello World!');
+        $disk->updateStream('test.txt', fopen($testFile, 'r'));
+        $disk->delete('test.txt');
+        $disk->writeStream('test.txt', fopen($testFile, 'r'));
+        $disk->has('test2.txt') && $disk->delete('test2.txt');
+        $disk->rename('test.txt', 'test2.txt');
+        $disk->copy('test2.txt', 'test.txt');
+        $disk->createDir('dir');
+        !$disk->has('dir/test2.txt') && $disk->write('dir/test2.txt', 'Hello World!');
+        $disk->deleteDir('dir');
+        $files = $disk->listContents();
+        $size = $disk->getSize('test.txt');
+        $mimeType = $disk->getMimetype('test.txt');
+        $timestamp = $disk->getTimestamp('test.txt');
+        $visibility = $disk->getVisibility('test.txt');
+        $disk->setVisibility('test.txt', 'public');
+        $metadata = $disk->getMetadata('test.txt');
         ... // 更多用法参考Flysystem
     }
   ```

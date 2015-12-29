@@ -5,12 +5,13 @@ use yii\base\InvalidParamException;
 use weyii\base\helpers\Collection;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\FilesystemInterface;
+use weyii\filesystem\FilesystemInterface as BaseFilesystemInterface;
 
 /**
  * Class FilesystemAdapter
  * @package weyii\filesystem
  */
-class FilesystemAdapter implements \weyii\filesystem\FilesystemInterface
+class FilesystemAdapter implements BaseFilesystemInterface
 {
     /**
      * The Flysystem filesystem implementation.
@@ -83,10 +84,10 @@ class FilesystemAdapter implements \weyii\filesystem\FilesystemInterface
     public function getVisibility($path)
     {
         if ($this->driver->getVisibility($path) == AdapterInterface::VISIBILITY_PUBLIC) {
-            return FilesystemInterface::VISIBILITY_PUBLIC;
+            return BaseFilesystemInterface::VISIBILITY_PUBLIC;
         }
 
-        return FilesystemInterface::VISIBILITY_PRIVATE;
+        return BaseFilesystemInterface::VISIBILITY_PRIVATE;
     }
 
     /**
@@ -319,10 +320,10 @@ class FilesystemAdapter implements \weyii\filesystem\FilesystemInterface
         }
 
         switch ($visibility) {
-            case FilesystemContract::VISIBILITY_PUBLIC:
+            case BaseFilesystemInterface::VISIBILITY_PUBLIC:
                 return AdapterInterface::VISIBILITY_PUBLIC;
 
-            case FilesystemContract::VISIBILITY_PRIVATE:
+            case BaseFilesystemInterface::VISIBILITY_PRIVATE:
                 return AdapterInterface::VISIBILITY_PRIVATE;
         }
 

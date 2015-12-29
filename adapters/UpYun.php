@@ -43,11 +43,11 @@ class UpYun extends Ftp
         parent::__construct($config);
 
         if ($this->operatorName === null || $this->username === null) {
-            throw new InvalidConfigException('The "operatorName" propery must be set.');
+            throw new InvalidConfigException('The "operatorName" property must be set.');
         } elseif ($this->operatorPassword === null || $this->password === null) {
-            throw new InvalidConfigException('The "operatorPassword" propery must be set.');
+            throw new InvalidConfigException('The "operatorPassword" property must be set.');
         } elseif ($this->bucket === null) {
-            throw new InvalidConfigException('The "bucket" propery must be set.');
+            throw new InvalidConfigException('The "bucket" property must be set.');
         }
     }
 

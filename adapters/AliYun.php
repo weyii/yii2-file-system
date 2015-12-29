@@ -34,9 +34,20 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public $bucket;
     /**
-     * @var string 基本访问域名
+     * 适合服务器和OSS都在阿里云上,速度快, 并且传输可以不计费, 但是需保证都在一个地区机房内,否则内容会访问失败
+     * @link https://help.aliyun.com/document_detail/oss/user_guide/oss_concept/endpoint.html?spm=5176.2020520105.0.0.DoO2aF
+     * @var string 内网域名
      */
-    public $baseUrl;
+    public $lanDomain;
+    /**
+     * @var string 外网域名, 默认为杭州外网域名
+     */
+    public $wanDomain = 'oss-cn-hangzhou.aliyuncs.com';
+    /**
+     * 从lanDomain和wanDomain中选取, lanDomain的优先级高于wanDomain
+     * @var string 最终操作域名
+     */
+    protected $baseUrl;
     /**
      * @var bool 是否私有空间, 默认公开空间
      */
@@ -48,13 +59,19 @@ class AliYun extends AbstractAdapter implements Configurable
     public function init()
     {
         if ($this->accessKeyId === null) {
-            throw new InvalidConfigException('The "accessKeyId" propery must be set.');
+            throw new InvalidConfigException('The "accessKeyId" property must be set.');
         } elseif ($this->accessKeySecret === null) {
-            throw new InvalidConfigException('The "accessKeySecret" propery must be set.');
+            throw new InvalidConfigException('The "accessKeySecret" property must be set.');
         } elseif ($this->bucket === null) {
-            throw new InvalidConfigException('The "bucket" propery must be set.');
-        } elseif ($this->baseUrl === null) {
-            throw new InvalidConfigException('The "baseUrl" propery must be set.');
+            throw new InvalidConfigException('The "bucket" property must be set.');
+        }
+
+        if ($this->lanDomain !== null) {
+            $this->baseUrl = $this->lanDomain;
+        } elseif ($this->wanDomain !== null) {
+            $this->baseUrl = $this->wanDomain;
+        } else {
+            throw new InvalidConfigException('The "lanDomain" or "wanDomain" property must be set.');
         }
     }
 
@@ -80,25 +97,80 @@ class AliYun extends AbstractAdapter implements Configurable
     }
 
     /**
+     * @param $object
+     * @param $uploadFile
+     * @param int $size
+     * @return null
+     * @throws \OSS\Core\OssException
+     */
+    protected function streamUpload($object, $uploadFile, $size = null)
+    {
+        $client = $this->getClient();
+        $bucket = $this->bucket;
+        $upload_position = 0;
+        $upload_file_size = $size ?: Util::getStreamSize($uploadFile);
+        $extension = pathinfo($object, PATHINFO_EXTENSION);
+        $options = [
+            OssClient::OSS_CONTENT_TYPE => MimeType::detectByFileExtension($extension) ?: OssClient::DEFAULT_CONTENT_TYPE,
+            OssClient::OSS_PART_SIZE => OssClient::OSS_MID_PART_SIZE
+        ];
+
+        $is_check_md5 = false;
+
+        $uploadId = $client->initiateMultipartUpload($bucket, $object, $options);
+
+        // 获取的分片
+        $pieces = $client->generateMultiuploadParts($upload_file_size, (integer)$options[OssClient::OSS_PART_SIZE]);
+        $response_upload_part = array();
+        foreach ($pieces as $i => $piece) {
+            $from_pos = $upload_position + (integer)$piece[OssClient::OSS_SEEK_TO];
+            $to_pos = (integer)$piece[OssClient::OSS_LENGTH] + $from_pos - 1;
+            $up_options = array(
+                OssClient::OSS_FILE_UPLOAD => $uploadFile,
+                OssClient::OSS_PART_NUM => ($i + 1),
+                OssClient::OSS_SEEK_TO => $from_pos,
+                OssClient::OSS_LENGTH => $to_pos - $from_pos + 1,
+                OssClient::OSS_CHECK_MD5 => $is_check_md5,
+            );
+            if ($is_check_md5) {
+                $content_md5 = OssUtil::getMd5SumForFile($uploadFile, $from_pos, $to_pos);
+                $up_options[OssClient::OSS_CONTENT_MD5] = $content_md5;
+            }
+            $response_upload_part[] = $client->uploadPart($bucket, $object, $uploadId, $up_options);
+        }
+
+        $uploadParts = array();
+        foreach ($response_upload_part as $i => $etag) {
+            $uploadParts[] = array(
+                'PartNumber' => ($i + 1),
+                'ETag' => $etag,
+            );
+        }
+        return $client->completeMultipartUpload($bucket, $object, $uploadId, $uploadParts);
+    }
+
+
+    /**
      * @param \OSS\Model\ObjectInfo|array $file
      * @return array
      */
     protected function normalizeData($file)
     {
-        if (is_array($file)) {
+        if (is_array($file[0])) { // listObject
             $data = [];
             foreach ($file as $k => $v) {
                 $data[$k] = $this->normalizeData($v);
             }
             return $data;
-        } elseif ($file instanceof ObjectInfo) {
+        } elseif ($file instanceof ObjectInfo) { // listObject -> ObjectInfo
+            $key = $file->getKey();
             return [
-                'type' => 'file',
-                'path' => $file->getKey(),
+                'type' => substr($key, -1) == '/' ? 'dir' : 'file',
+                'path' => $key,
                 'size' => $file->getSize(),
                 'timestamp' => strtotime($file->getLastModified())
             ];
-        } else {
+        } else { // Metadata
             return [
                 'type' => 'file',
                 'path' => $file['key'],
@@ -117,7 +189,7 @@ class AliYun extends AbstractAdapter implements Configurable
     protected function listDirContents($directory, $start = null)
     {
         $listInfo = $this->getClient()->listObjects($this->bucket, [
-            'prefix' => trim($directory, '/') . '/',
+            'prefix' => $directory ? trim($directory, '/') . '/' : $directory,
             'marker' => $start
         ]);
         $start = $listInfo->getNextMarker();
@@ -133,7 +205,7 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function has($path)
     {
-        return $this->getMetadata($path);
+        return $this->getClient()->doesObjectExist($this->bucket, $path);
     }
 
     /**
@@ -141,8 +213,13 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function read($path)
     {
-        $contents = $this->getClient()->getObject($this->bucket, $path);
-        return compact('contents', 'path');
+        if (!($resource = $this->readStream($path))) {
+            return false;
+        }
+        $resource['contents'] = stream_get_contents($resource['stream']);
+        fclose($resource['stream']);
+        unset($resource['stream']);
+        return $resource;
     }
 
     /**
@@ -152,6 +229,9 @@ class AliYun extends AbstractAdapter implements Configurable
     {
         $url = $this->getClient()->signUrl($this->bucket, $path, 3600);
         $stream = fopen($url, 'r');
+        if (!$stream) {
+            return false;
+        }
         return compact('stream', 'path');
     }
 
@@ -217,22 +297,6 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function write($path, $contents, Config $config)
     {
-        return $this->update($path, $contents, $config);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function writeStream($path, $resource, Config $config)
-    {
-        return $this->updateStream($path, $resource, $config);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function update($path, $contents, Config $config)
-    {
         $result = $this->getClient()->putObject($this->bucket, $path, $contents);
         if ($result !== null) {
             return false;
@@ -242,56 +306,24 @@ class AliYun extends AbstractAdapter implements Configurable
     }
 
     /**
-     * @param $object
-     * @param $uploadFile
-     * @param int $size
-     * @return null
-     * @throws \OSS\Core\OssException
+     * @inheritdoc
      */
-    protected function streamUpload($object, $uploadFile, $size = 0)
+    public function writeStream($path, $resource, Config $config)
     {
-        $client = $this->getClient();
-        $bucket = $this->bucket;
-        $upload_position = 0;
-        $upload_file_size = $size ?: Util::getStreamSize($uploadFile);
-        $extension = pathinfo($object, PATHINFO_EXTENSION);
-        $options = [
-            OssClient::OSS_CONTENT_TYPE => MimeType::detectByFileExtension($extension) ?: OssClient::DEFAULT_CONTENT_TYPE,
-            OssClient::OSS_PART_SIZE => OssClient::OSS_MID_PART_SIZE
-        ];
-
-        $is_check_md5 = false;
-
-        $uploadId = $client->initiateMultipartUpload($bucket, $object, $options);
-
-        // 获取的分片
-        $pieces = $client->generateMultiuploadParts($upload_file_size, (integer)$options[OssClient::OSS_PART_SIZE]);
-        $response_upload_part = array();
-        foreach ($pieces as $i => $piece) {
-            $from_pos = $upload_position + (integer)$piece[OssClient::OSS_SEEK_TO];
-            $to_pos = (integer)$piece[OssClient::OSS_LENGTH] + $from_pos - 1;
-            $up_options = array(
-                OssClient::OSS_FILE_UPLOAD => $uploadFile,
-                OssClient::OSS_PART_NUM => ($i + 1),
-                OssClient::OSS_SEEK_TO => $from_pos,
-                OssClient::OSS_LENGTH => $to_pos - $from_pos + 1,
-                OssClient::OSS_CHECK_MD5 => $is_check_md5,
-            );
-            if ($is_check_md5) {
-                $content_md5 = OssUtil::getMd5SumForFile($uploadFile, $from_pos, $to_pos);
-                $up_options[OssClient::OSS_CONTENT_MD5] = $content_md5;
-            }
-            $response_upload_part[] = $client->uploadPart($bucket, $object, $uploadId, $up_options);
+        $size = Util::getStreamSize($resource);
+        list(, $err) = $this->streamUpload($path, $resource, $size);
+        if ($err !== null) {
+            return false;
         }
+        return compact('size', 'path');
+    }
 
-        $uploadParts = array();
-        foreach ($response_upload_part as $i => $etag) {
-            $uploadParts[] = array(
-                'PartNumber' => ($i + 1),
-                'ETag' => $etag,
-            );
-        }
-        return $client->completeMultipartUpload($bucket, $object, $uploadId, $uploadParts);
+    /**
+     * @inheritdoc
+     */
+    public function update($path, $contents, Config $config)
+    {
+        return $this->write($path, $contents, $config);
     }
 
     /**
@@ -299,12 +331,7 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function updateStream($path, $resource, Config $config)
     {
-        $size = Util::getStreamSize($resource);
-        $result = $this->streamUpload($path, $resource, $size);
-        if ($result !== null) {
-            return false;
-        }
-        return compact('size', 'path');
+        return $this->writeStream($path, $resource, $config);
     }
 
     /**
@@ -352,6 +379,10 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     public function createDir($dirname, Config $config)
     {
+        $result = $this->getClient()->createObjectDir($this->bucket, rtrim($dirname, '/'));
+        if ($result !== null) {
+            return false;
+        }
         return ['path' => $dirname];
     }
 

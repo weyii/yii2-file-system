@@ -49,13 +49,13 @@ class QiNiu extends AbstractAdapter implements Configurable
     public function init()
     {
         if ($this->accessKey === null) {
-            throw new InvalidConfigException('The "accessKey" propery must be set.');
+            throw new InvalidConfigException('The "accessKey" property must be set.');
         } elseif ($this->accessSecret === null) {
-            throw new InvalidConfigException('The "accessSecret" propery must be set.');
+            throw new InvalidConfigException('The "accessSecret" property must be set.');
         } elseif ($this->bucket === null) {
-            throw new InvalidConfigException('The "bucket" propery must be set.');
+            throw new InvalidConfigException('The "bucket" property must be set.');
         } elseif ($this->baseUrl === null) {
-            throw new InvalidConfigException('The "baseUrl" propery must be set.');
+            throw new InvalidConfigException('The "baseUrl" property must be set.');
         }
     }
 
@@ -205,7 +205,7 @@ class QiNiu extends AbstractAdapter implements Configurable
      */
     public function read($path)
     {
-        if (!$resource = $this->readStream($path)) {
+        if (!($resource = $this->readStream($path))) {
             return false;
         }
         $resource['contents'] = stream_get_contents($resource['stream']);
