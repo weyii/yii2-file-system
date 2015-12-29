@@ -8,7 +8,7 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
 - 又拍云存储
 - 七牛与存储
 - 本地存储
-- FTP存储
+- Ftp存储
 - SFtp存储
 
 ####墙外世界产品(去Flysystem上找)
