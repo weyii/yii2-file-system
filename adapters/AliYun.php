@@ -156,7 +156,7 @@ class AliYun extends AbstractAdapter implements Configurable
      */
     protected function normalizeData($file)
     {
-        if (is_array($file[0])) { // listObject
+        if (is_array($file) && isset($file[0])) { // listObject
             $data = [];
             foreach ($file as $k => $v) {
                 $data[$k] = $this->normalizeData($v);
