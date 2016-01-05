@@ -1,6 +1,7 @@
 <?php
 
 namespace weyii\filesystem;
+
 /**
  * Interface FilesystemInterface
  * @package weyii\filesystem
@@ -22,51 +23,6 @@ interface FilesystemInterface
     const VISIBILITY_PRIVATE = 'private';
 
     /**
-     * Determine if a file exists.
-     *
-     * @param  string  $path
-     * @return bool
-     */
-    public function exists($path);
-
-    /**
-     * Get the contents of a file.
-     *
-     * @param  string  $path
-     * @return string
-     *
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    public function get($path);
-
-    /**
-     * Write the contents of a file.
-     *
-     * @param  string  $path
-     * @param  string|resource  $contents
-     * @param  string  $visibility
-     * @return bool
-     */
-    public function put($path, $contents, $visibility = null);
-
-    /**
-     * Get the visibility for the given path.
-     *
-     * @param  string  $path
-     * @return string
-     */
-    public function getVisibility($path);
-
-    /**
-     * Set the visibility for the given path.
-     *
-     * @param  string  $path
-     * @param  string  $visibility
-     * @return void
-     */
-    public function setVisibility($path, $visibility);
-
-    /**
      * Prepend to a file.
      *
      * @param  string  $path
@@ -83,14 +39,6 @@ interface FilesystemInterface
      * @return int
      */
     public function append($path, $data);
-
-    /**
-     * Delete the file at a given path.
-     *
-     * @param  string|array  $paths
-     * @return bool
-     */
-    public function delete($paths);
 
     /**
      * Copy a file to a new location.
@@ -159,20 +107,4 @@ interface FilesystemInterface
      * @return array
      */
     public function allDirectories($directory = null);
-
-    /**
-     * Create a directory.
-     *
-     * @param  string  $path
-     * @return bool
-     */
-    public function makeDirectory($path);
-
-    /**
-     * Recursively delete a directory.
-     *
-     * @param  string  $directory
-     * @return bool
-     */
-    public function deleteDirectory($directory);
 }

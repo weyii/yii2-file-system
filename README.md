@@ -8,7 +8,7 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
 - 又拍云存储
 - 七牛与存储
 - 本地存储
-- Ftp存储
+- FTP存储
 - SFtp存储
 
 ####墙外世界产品(去Flysystem上找)
@@ -86,7 +86,7 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
 
   ```php
 
-    // 如果在注册一个全局函数, 将会更简便
+    // 如果注册一个全局函数, 将会更简便
 
     if (!function_exists('storage')) {
         /**
@@ -109,7 +109,6 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
     $storage = Yii::$app->get('storage'); // $storage = Yii::$app->storage;
     $storage->has('test.txt');
 
-    // Laravel式黑暗语法!
     $storage = storage();
     $defaultDisk = $storage->getDisk();
     $disk = $storage->getDisk('local');
@@ -122,19 +121,20 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
     $disk = $disk->has('tes.txt');
 
     $disks = $storage->disks;
-    $testFile = Yii::getAlias('@webroot/assets/test.txt');
-    file_put_contents($testFile, 'test.txt');
+    $testFileAlias = '@webroot/assets/test.txt';
+    $testFile = Yii::getAlias($testFileAlias);
+    file_put_contents($testFile, 'test.txt'); // 测试文件
     foreach ($disks as $name => $disk) {
         $disk = $storage->getDisk($name); // $disk = storage($name)
 
-        // 以下语法参照Laravel的Filesystem语法
-        $disk->put('test.txt', 'hello world!'); // storage($name)->put('test.txt', 'hello world!'); //下面的都可以这样操作
-        $disk->put('test.txt', $resource); // 流操作
+        $files = $disk->listContents();
+
         $disk->has('test.txt');
         $disk->get('test.txt');
         $disk->size('test.txt');
         $disk->lastModified('test.txt');
 
+        $disk->delete('test.txt');
         $disk->copy('test.txt', 'test1.txt');
         $disk->move('test1.txt', 'test2.txt');
 
@@ -150,12 +150,13 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
         $disk->directories('/path');
         $disk->allDirectories('/path');
 
-        $disk->makeDirectory('/path');
-        $disk->deleteDirectory('/path');
-
-        // 抽象原始方法
-        $files = $disk->listContents();
         $has = $disk->has('test.txt');
+        $has && $disk->delete('test.txt');
+        $disk->put('test.txt', 'hello world!'); // storage($name)->put('test.txt', 'hello world!'); //下面的都可以这样操作
+        $disk->delete('test.txt');
+        $disk->putStream('test.txt', fopen($testFile, 'r')); // 流操作
+        $disk->delete('test.txt');
+        $disk->putFile('test.txt', $testFileAlias); // 文件路径操作
         $has && $disk->delete('test.txt');
         $disk->write('test.txt', 'Hello World!');
         $data = $disk->read('test.txt');

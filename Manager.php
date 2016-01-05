@@ -5,9 +5,7 @@ use Closure;
 use Yii;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
-use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\AdapterInterface;
-use League\Flysystem\FilesystemInterface;
 
 /**
  * Class Manager
@@ -67,7 +65,7 @@ class Manager extends Component
      * @param string|null $id 为空则取默认的Disk ID
      * @param bool|true $throwException
      * @return null|\weyii\filesystem\FilesystemInterface
-     * @throws InvalidConfigException
+     * @throws \yii\base\InvalidConfigException
      */
     public function getDisk($id = null, $throwException = true)
     {
@@ -86,10 +84,9 @@ class Manager extends Component
             } else {
                 $adapter = Yii::createObject($definition);
             }
-            $driver = $adapter instanceof FilesystemInterface ? $adapter : $this->createFlysystem($adapter);
-            return $this->_disks[$id] = $this->adapt($driver);
+            return $this->_disks[$id] = $this->createFilesystem($adapter);
         } elseif ($throwException) {
-            throw new InvalidConfigException("Unknown component ID: $id");
+            throw new InvalidConfigException("Unknown disk ID: $id");
         } else {
             return null;
         }
@@ -100,7 +97,7 @@ class Manager extends Component
      *
      * @param $id
      * @param $definition
-     * @throws InvalidConfigException
+     * @throws \yii\base\InvalidConfigException
      */
     public function setDisk($id, $definition)
     {
@@ -127,24 +124,15 @@ class Manager extends Component
     }
 
     /**
-     * @param \League\Flysystem\FilesystemInterface $filesystem
-     * @return \weyii\filesystem\File
-     */
-    protected function adapt(FilesystemInterface $filesystem)
-    {
-        return new FilesystemAdapter($filesystem);
-    }
-
-    /**
      * 创建文件系统驱动
      *
      * @param \League\Flysystem\AdapterInterface $adapter
      * @param array|null $config
-     * @return \League\Flysystem\Filesystem
+     * @return \weyii\filesystem\Filesystem
      */
-    protected function createFlysystem(AdapterInterface $adapter, array $config = null)
+    protected function createFilesystem(AdapterInterface $adapter, array $config = null)
     {
-        return new Flysystem($adapter, $config);
+        return new Filesystem($adapter, $config);
     }
 
     /**

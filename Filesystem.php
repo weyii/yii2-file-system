@@ -2,77 +2,30 @@
 namespace weyii\filesystem;
 
 use yii\base\InvalidParamException;
-use weyii\base\helpers\Collection;
-use League\Flysystem\AdapterInterface;
-use League\Flysystem\FilesystemInterface;
-use weyii\filesystem\FilesystemInterface as BaseFilesystemInterface;
+use weyii\base\traits\ClassTrait;
 
 /**
- * Class FilesystemAdapter
+ * Class BaseFilesystem
  * @package weyii\filesystem
  */
-class FilesystemAdapter implements BaseFilesystemInterface
+class Filesystem extends \League\Flysystem\Filesystem implements FilesystemInterface
 {
-    /**
-     * The Flysystem filesystem implementation.
-     *
-     * @var \League\Flysystem\FilesystemInterface
-     */
-    protected $driver;
+    use ClassTrait;
 
     /**
-     * Create a new filesystem adapter instance.
+     * Write the contents of a file with file path.
      *
-     * @param  \League\Flysystem\FilesystemInterface  $driver
+     * @param string $path
+     * @param string $filePath
+     * @param array $config
+     * @return mixed
      */
-    public function __construct(FilesystemInterface $driver)
+    public function putFile($path, $filePath, array $config = [])
     {
-        $this->driver = $driver;
-    }
-
-    /**
-     * Determine if a file exists.
-     *
-     * @param  string  $path
-     * @return bool
-     */
-    public function exists($path)
-    {
-        return $this->driver->has($path);
-    }
-
-    /**
-     * Get the contents of a file.
-     *
-     * @param  string  $path
-     * @return string
-     */
-    public function get($path)
-    {
-        return $this->driver->read($path);
-    }
-
-    /**
-     * Write the contents of a file.
-     *
-     * @param  string  $path
-     * @param  string|resource  $contents
-     * @param  string  $visibility
-     * @return bool
-     */
-    public function put($path, $contents, $visibility = null)
-    {
-        if ($visibility = $this->parseVisibility($visibility)) {
-            $config = ['visibility' => $visibility];
-        } else {
-            $config = [];
-        }
-
-        if (is_resource($contents)) {
-            return $this->driver->putStream($path, $contents, $config);
-        } else {
-            return $this->driver->put($path, $contents, $config);
-        }
+        $resource = fread(Yii::getAlias($filePath), 'r');
+        $result = parent::putStream($path, $resource, $config);
+        fclose($resource);
+        return $result;
     }
 
     /**
@@ -83,7 +36,7 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function getVisibility($path)
     {
-        if ($this->driver->getVisibility($path) == AdapterInterface::VISIBILITY_PUBLIC) {
+        if (parent::getVisibility($path) == AdapterInterface::VISIBILITY_PUBLIC) {
             return BaseFilesystemInterface::VISIBILITY_PUBLIC;
         }
 
@@ -99,7 +52,7 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function setVisibility($path, $visibility)
     {
-        return $this->driver->setVisibility($path, $this->parseVisibility($visibility));
+        return parent::setVisibility($path, $this->parseVisibility($visibility));
     }
 
     /**
@@ -111,8 +64,8 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function prepend($path, $data)
     {
-        if ($this->exists($path)) {
-            return $this->put($path, $data.PHP_EOL.$this->get($path));
+        if ($this->has($path)) {
+            return $this->put($path, $data . PHP_EOL . $this->get($path));
         }
 
         return $this->put($path, $data);
@@ -127,8 +80,8 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function append($path, $data)
     {
-        if ($this->exists($path)) {
-            return $this->put($path, $this->get($path).PHP_EOL.$data);
+        if ($this->has($path)) {
+            return $this->put($path, $this->get($path) . PHP_EOL . $data);
         }
 
         return $this->put($path, $data);
@@ -145,22 +98,10 @@ class FilesystemAdapter implements BaseFilesystemInterface
         $paths = is_array($paths) ? $paths : func_get_args();
 
         foreach ($paths as $path) {
-            $this->driver->delete($path);
+            parent::delete($path);
         }
 
         return true;
-    }
-
-    /**
-     * Copy a file to a new location.
-     *
-     * @param  string  $from
-     * @param  string  $to
-     * @return bool
-     */
-    public function copy($from, $to)
-    {
-        return $this->driver->copy($from, $to);
     }
 
     /**
@@ -172,7 +113,7 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function move($from, $to)
     {
-        return $this->driver->rename($from, $to);
+        return parent::rename($from, $to);
     }
 
     /**
@@ -183,7 +124,7 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function size($path)
     {
-        return $this->driver->getSize($path);
+        return parent::getSize($path);
     }
 
     /**
@@ -194,7 +135,7 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function mimeType($path)
     {
-        return $this->driver->getMimetype($path);
+        return parent::getMimetype($path);
     }
 
     /**
@@ -205,7 +146,7 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function lastModified($path)
     {
-        return $this->driver->getTimestamp($path);
+        return parent::getTimestamp($path);
     }
 
     /**
@@ -217,7 +158,7 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function files($directory = null, $recursive = false)
     {
-        $contents = $this->driver->listContents($directory, $recursive);
+        $contents = parent::listContents($directory, $recursive);
 
         return $this->filterContentsByType($contents, 'file');
     }
@@ -242,7 +183,7 @@ class FilesystemAdapter implements BaseFilesystemInterface
      */
     public function directories($directory = null, $recursive = false)
     {
-        $contents = $this->driver->listContents($directory, $recursive);
+        $contents = parent::listContents($directory, $recursive);
 
         return $this->filterContentsByType($contents, 'dir');
     }
@@ -256,38 +197,6 @@ class FilesystemAdapter implements BaseFilesystemInterface
     public function allDirectories($directory = null)
     {
         return $this->directories($directory, true);
-    }
-
-    /**
-     * Create a directory.
-     *
-     * @param  string  $path
-     * @return bool
-     */
-    public function makeDirectory($path)
-    {
-        return $this->driver->createDir($path);
-    }
-
-    /**
-     * Recursively delete a directory.
-     *
-     * @param  string  $directory
-     * @return bool
-     */
-    public function deleteDirectory($directory)
-    {
-        return $this->driver->deleteDir($directory);
-    }
-
-    /**
-     * Get the Flysystem driver.
-     *
-     * @return \League\Flysystem\FilesystemInterface
-     */
-    public function getDriver()
-    {
-        return $this->driver;
     }
 
     /**
@@ -328,19 +237,5 @@ class FilesystemAdapter implements BaseFilesystemInterface
         }
 
         throw new InvalidParamException('Unknown visibility: ' . $visibility);
-    }
-
-    /**
-     * Pass dynamic methods call onto Flysystem.
-     *
-     * @param  string  $method
-     * @param  array  $parameters
-     * @return mixed
-     *
-     * @throws \BadMethodCallException
-     */
-    public function __call($method, array $parameters)
-    {
-        return call_user_func_array([$this->driver, $method], $parameters);
     }
 }
