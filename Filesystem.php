@@ -1,6 +1,7 @@
 <?php
 namespace weyii\filesystem;
 
+use Yii;
 use yii\base\InvalidParamException;
 use weyii\base\traits\ClassTrait;
 
@@ -22,7 +23,7 @@ class Filesystem extends \League\Flysystem\Filesystem implements FilesystemInter
      */
     public function putFile($path, $filePath, array $config = [])
     {
-        $resource = fread(Yii::getAlias($filePath), 'r');
+        $resource = fopen(Yii::getAlias($filePath), 'r');
         $result = parent::putStream($path, $resource, $config);
         fclose($resource);
         return $result;
