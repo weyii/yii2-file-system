@@ -25,18 +25,18 @@ Yii2-filesystem是 [Flysystem](https://github.com/thephpleague/flysystem)基础�
 使用要求
 ========
 - php >= 5.4
-- [Flysystem](https://github.com/thephpleague/flysystem) 
+- [Flysystem](https://github.com/thephpleague/flysystem)
 
 使用教程
 ========
 ###使用`Componser`安装 (以下2种方式)
 - 命令行执行 `composer require weyii/yii2-filesystem`
-- 编辑`composer.json` 
+- 编辑`composer.json`
 
   ```php
   "require": {
       ...
-      "weyii/yii2-file-system": "*"
+      "weyii/yii2-filesystem": "*"
   },
   ```
 ### 编辑配置文件
